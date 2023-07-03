@@ -1,0 +1,11 @@
+﻿## Comments can be added anywhere on a valid line by starting with '##'
+##
+## Note, trailing spaces will NOT be trimmed. If you want room between the end of the string and the start of a
+## comment on the same line, use TABs.
+language.name=English GB
+translation.test.args=%s %s # inline comment!
+translation.test.complex=Prefix, %2 again %s and %1 lastly %s and also %1 again!
+translation.test.invalid=hi %
+translation.test.invalid2=hi %  s
+translation.test.none=Hello, world!
+translation.test.world=world
