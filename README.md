@@ -8,6 +8,7 @@ pip install mclang
 
 ## Features
 - Read and write to `.lang` files.
+- Saves your comments
 - add translation support to your Python application.
 
 See the docs for more information.
