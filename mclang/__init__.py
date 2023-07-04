@@ -44,6 +44,9 @@ class Lang(dict):
         return self.format(result, *subs)
     tl = translate
 
+    def set(self, __key:str, __value:str):
+        self[__key] = __value
+
     @property
     def comments(self) -> list:
         return getattr(self, '_comments', [])
