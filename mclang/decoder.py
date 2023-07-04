@@ -9,15 +9,19 @@ class LANGDecoder:
 
     def decode(self, s) -> Lang:
         remove = [r'\t', r'#.*'] # 
-        result = {}
+        result = Lang({})
         lines = str(s).split('\n')
-        num = 1
+        line = 1
+        num = 0
         for ln in lines:
             text = ln.lstrip('\ufeff ')
-            if text.startswith('##'): pass # ignore comments
+            if text.startswith('##'): # save comments
+                print(text)
+                result.insert_comment(num, re.sub(r'^##\s', '', text))
+                pass
             elif text == '': pass # ignore empty lines
             elif text.startswith('#'): 
-                raise LANGDecoderError(f"Line: {num} - Invalid lang file format. New line character was found while parsing key: '{text}'.")
+                raise LANGDecoderError(f"Line: {line} - Invalid lang file format. New line character was found while parsing key: '{text}'.")
             else:
                 kv = text.split('=',1)
                 if len(kv) == 2:
@@ -25,9 +29,10 @@ class LANGDecoder:
                     for r in remove:
                         v = re.sub(r, '', v)
                     result[kv[0]] = v
+                    num+=1
                 else:
-                    raise LANGDecoderError(f"Line: {num} - Invalid lang file format. New line character was found while parsing key: '{text}'.")
+                    raise LANGDecoderError(f"Line: {line} - Invalid lang file format. New line character was found while parsing key: '{text}'.")
 
 
-            num+=1
-        return Lang(result)
+            line+=1
+        return result
