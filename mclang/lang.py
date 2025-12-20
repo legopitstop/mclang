@@ -1,3 +1,20 @@
+__all__ = [
+    "Lang",
+    "LANGDecoder",
+    "LANGEncoder",
+    "set_language",
+    "get_language",
+    "init",
+    "translate",
+    "tl",
+    "dump",
+    "dumps",
+    "load",
+    "loads",
+    "open",
+    "LANGDecoderError",
+]
+
 from typing import Dict, List, Optional, Union
 from deep_translator import GoogleTranslator
 from io import TextIOWrapper
@@ -274,35 +291,44 @@ class LANGDecoder:
         """
         if isinstance(s, bytes):
             s = s.decode("utf-8")
-        remove = [r"\t", r"#.*"]  #
+        remove = [r"\t", r"#.*"]
         result = Lang({})
         lines = str(s).split("\n")
-        line = 1
         num = 0
-        for ln in [str(line).strip().replace("\r", "") for line in lines]:
+        current_key: Optional[str] = None
+
+        for idx, raw in enumerate(lines, start=1):
+            ln = str(raw).strip().replace("\r", "")
             text = ln.lstrip("\ufeff ")
+
             if text.startswith("##"):  # save comments
                 result._comment(num, re.sub(r"^##", "", text))
-                pass
-            elif text == "":
-                pass  # ignore empty lines
-            elif text.startswith("#"):
+                continue
+            if text == "":
+                continue  # ignore empty lines
+            if text.startswith("#"):
                 raise LANGDecoderError(
-                    f"Line: {line} - Invalid lang file format. New line character was found while parsing key: '{text}'."
+                    f"Line: {idx} - Invalid lang file format. New line character was found while parsing key: '{text}'."
                 )
+
+            if "=" in text:
+                k, v = text.split("=", 1)
+                for r in remove:
+                    v = re.sub(r, "", v)
+                result[k] = v
+                current_key = k
+                num += 1
             else:
-                kv = text.split("=", 1)
-                if len(kv) == 2:
-                    v = kv[1]
-                    for r in remove:
-                        v = re.sub(r, "", v)
-                    result[kv[0]] = v
-                    num += 1
-                else:
+                if current_key is None:
                     raise LANGDecoderError(
-                        f"Line: {line} - Invalid lang file format. New line character was found while parsing key: '{text}'."
+                        f"Line: {idx} - Invalid lang file format. New line character was found while parsing key: '{text}'."
                     )
-            line += 1
+                cont = "\n" + text
+                for r in remove:
+                    cont = re.sub(r, "", cont)
+                prev = result[current_key]
+                result[current_key] = prev + cont
+
         return result
 
 
@@ -330,7 +356,6 @@ class LANGEncoder:
 
         # Comments
         if isinstance(obj, Lang):
-            # line = len(lines)
             i = 0
             for c in obj.comments:
                 lines.insert(c.line + i, f"## {c.text}")
@@ -388,11 +413,11 @@ def init(path: str = "texts", default: str = "en_US") -> None:
                 langs.append(file.replace(".lang", ""))
 
     # get lang file
-    locale = get_language()
-    if locale is None:
-        locale = "en_US"
-    if locale in langs:
-        with builtins.open(os.path.join(path, locale + ".lang"), encoding="utf8") as fd:
+    locale_code = get_language()
+    if locale_code is None:
+        locale_code = "en_US"
+    if locale_code in langs:
+        with builtins.open(os.path.join(path, locale_code + ".lang"), encoding="utf8") as fd:
             load(fd)
     else:
         fp = os.path.join(path, default + ".lang")

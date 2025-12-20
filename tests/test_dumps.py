@@ -9,7 +9,7 @@ def test_dumps():
     obj = {
         "test": "This is cool!",
         "test2": "It worked!",
+        "newline": "va\nlue",
     }
 
-    result = mclang.dumps(obj)
-    print(result)
+    mclang.dumps(obj)

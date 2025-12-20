@@ -17,7 +17,8 @@ def test_write_file():
 
 def test_read_file():
     with mclang.open("tests/en_US.lang", "r") as lang:
-        print(lang)
+        assert lang.tl("test") == "§cThis is cool!"
+        assert lang.tl("test2") == "§aIt worked!"
 
 
 def test_rw_file():

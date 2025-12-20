@@ -9,9 +9,11 @@ def test_loads():
     lang = """
     test=This is cool!
     test2=It worked!
+    key=va
+    lue
     """
 
     doc = mclang.loads(lang)
 
-    res = doc.tl("test")
-    print(f'"{res}"')
+    assert doc.tl("test") == "This is cool!"
+    assert doc.tl("key") == "va\nlue"
