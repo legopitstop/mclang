@@ -22,12 +22,6 @@ def test_inline_comment_and_tabs_removed():
     assert doc.tl("k") == "helloworld "
 
 
-def test_single_hash_line_raises():
-    s = "# not allowed\n"
-    with pytest.raises(mclang.LANGDecoderError):
-        mclang.loads(s)
-
-
 def test_encoder_decoder_roundtrip_multiline_value():
     lang = mclang.Lang({"key": "va\nlue", "other": "x"})
     dumped = mclang.dumps(lang)

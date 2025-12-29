@@ -44,3 +44,7 @@ doc = mclang.loads(lang)
 print(doc.tl("test"))
 # This is cool!
 ```
+
+## Road map
+
+- [ ] Add inline comment support.

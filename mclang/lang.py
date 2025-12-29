@@ -13,6 +13,7 @@ __all__ = [
     "loads",
     "open",
     "LANGDecoderError",
+    "Comment",
 ]
 
 from typing import Dict, List, Optional, Union
@@ -69,15 +70,24 @@ class LangError(Exception):
 
 
 class Comment:
-    def __init__(self, line: int, text: str):
+    def __init__(self, line: int, text: str, inline: bool = False):
         self.line = line
         self.text = text
+        self.inline = inline
+
+    def __repr__(self) -> str:
+        return repr(self.text)
 
 
 class Lang(Dict[str, str]):
     mode: str
     fp: str
     _comments: List[Comment]
+
+    def __repr__(self) -> str:
+        c = [f"{k}={repr(v)}" for k, v in self.items()]
+        joined = ", ".join(c)
+        return f"{self.__class__.__name__}({joined})"
 
     def __enter__(self) -> "Lang":
         return self
@@ -146,7 +156,7 @@ class Lang(Dict[str, str]):
                 f"Expected list but got '{value.__class__.__name__}' instead."
             )
 
-    def _comment(self, line: int, text: str) -> "Lang":
+    def insert_comment(self, line: int, text: str, inline: bool = False) -> "Lang":
         """
         Inserts a comment to the file at a specified line before the key/value if any
 
@@ -158,10 +168,12 @@ class Lang(Dict[str, str]):
         """
 
         try:
-            self._comments.append(Comment(line, text))
+            self._comments.append(Comment(line, text, inline))
         except AttributeError:
             self._comments = [Comment(line, text)]
         return self
+
+    _comment = insert_comment
 
     def remove_comment(self, index: int) -> "Lang":
         """
@@ -192,6 +204,7 @@ class Lang(Dict[str, str]):
 
     # TODO Should break up into chunks so it stays within the character limit.
     # Max: 5000
+    # Preserve placeholders (%s, %1)
     # Use multiprocessing to speed up large files.
     def translate_language(self, target: str = "en", **kw) -> "Lang":
         """
@@ -275,6 +288,14 @@ class Lang(Dict[str, str]):
         with builtins.open(fp, "w", encoding="utf-8") as fd:
             self.dump(fd)
 
+    def update(self, *args, **kwargs) -> None:
+        for arg in args:
+            if isinstance(arg, Lang):
+                for c in arg.comments:
+                    self.insert_comment(c.line, c.text, c.inline)
+
+        super().update(*args, **kwargs)
+
 
 class LANGDecoder:
     def __init__(self, **kw):
@@ -301,8 +322,8 @@ class LANGDecoder:
             ln = str(raw).strip().replace("\r", "")
             text = ln.lstrip("\ufeff ")
 
-            if text.startswith("##"):  # save comments
-                result._comment(num, re.sub(r"^##", "", text))
+            if text.startswith("#"):  # save comments
+                result.insert_comment(num, re.sub(r"^##?", "", text))
                 continue
             if text == "":
                 continue  # ignore empty lines
@@ -358,12 +379,12 @@ class LANGEncoder:
         if isinstance(obj, Lang):
             i = 0
             for c in obj.comments:
-                lines.insert(c.line + i, f"## {c.text}")
+                lines.insert(c.line + i, f"##{c.text}")
                 i += 1
         return str("\n".join(lines)) + "\n"
 
 
-def set_language(lang: str) -> None:
+def set_language(lang: Optional[str]) -> None:
     """
     Override the locale language
 
@@ -371,7 +392,7 @@ def set_language(lang: str) -> None:
     :type lang: str
     """
     global __lang__
-    __lang__ = str(lang)
+    __lang__ = str(lang) if lang else locale.getlocale()[0]
 
 
 def get_language() -> Optional[str]:
@@ -417,7 +438,9 @@ def init(path: str = "texts", default: str = "en_US") -> None:
     if locale_code is None:
         locale_code = "en_US"
     if locale_code in langs:
-        with builtins.open(os.path.join(path, locale_code + ".lang"), encoding="utf8") as fd:
+        with builtins.open(
+            os.path.join(path, locale_code + ".lang"), encoding="utf8"
+        ) as fd:
             load(fd)
     else:
         fp = os.path.join(path, default + ".lang")
